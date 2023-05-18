@@ -1,5 +1,5 @@
 ---
-title: "Assignment your_name studentID"
+title: "Assignment ZanCui 47384263"
 output: pdf_document
 ---
 
@@ -7,28 +7,199 @@ output: pdf_document
 knitr::opts_chunk$set(echo = TRUE)
 ```
 
-## R Markdown
-This is an R Markdown document. Markdown is a simple formatting syntax for authoring HTML, PDF, and MS Word documents. For more details on using R Markdown see <http://rmarkdown.rstudio.com>.
+## Question 1
+### a
 
-When you click the **Knit** button a document will be generated that includes both content as well as the output of any embedded R code chunks within the document. You can embed an R code chunk like this:
+The correlation matrix and plot are shown below.
 
-```{r cars}
-summary(cars)
+Relationships between response and predictors:
+
+* There is a moderate positive relationship between pm25 and temperature with correlation coefficient as 0.57.
+* There is a strong negative relationship between pm25 and humidity with correlation coefficient as -0.72.
+* There is a slightly negative relationship between pm25 and wind with correlation coefficient as -0.22.
+
+Relationships between the predictors themselves:
+
+* There is a slightly positive relationship between humidity and wind with correlation coefficient as 0.12.
+* There is a slightly negative relationship between humidity and precipitation with correlation coefficient as -0.14.
+
+```{r q1a}
+library(ggplot2)
+library(ggcorrplot)
+setwd("/Users/selinayqi/Desktop/stat2170-zancui")
+data <- read.csv("data/pm25.csv")
+corr <- cor(data)
+corr
+ggcorrplot(corr)
 ```
 
-## Including Plots
 
-You can also embed plots, for example:
+### b
+The 95% confidence interval for the coefficient of humidity is (-1.515, -1.039).
 
-```{r pressure, echo=FALSE}
-plot(pressure)
+We have 95% confidence that the change in PM2.5 concentration for each extra percentage of relative humidity is between -1.515 and -1.039.
+
+```{r q1b}
+model <- lm(pm25~temperature+humidity+wind+precipitation, data=data)
+summary(model)
+b <- model$coefficients[3]
+n <- length(data[,1])
+t <- qt(0.975, n-5)
+se <- 0.11854
+ci.lower <- b-t*se
+ci.upper <- b+t*se
+c(ci.lower, ci.upper)
 ```
 
-Note that the `echo = FALSE` parameter was added to the code chunk to prevent printing of the R code that generated the plot.
+### c
+The regression model is:
 
-## Loading data example
-Note that the `kml.dat` is located in the subfolder `data`.
-```{r kml, echo=TRUE}
-kml = read.table(here::here("data", "kml.dat"), header=TRUE)
-head(kml)
+$pm25=\beta_0 temperature+\beta_1 humidity+\beta_2 wind+ \beta_3 precipitation+u$.
+
+We conduct the overall ANOVA test for the above model.
+
+$H_0: \beta_1=\beta_2=\beta_3=0$
+
+$H_a: not all \beta_1, \beta_2 and \beta_3 are equal to 0$
+
+The anova table are shown below.
+
+Test statistic: $F_obs = \frac{Reg.M.S.}{Res.M.S}=55.34$.
+
+If H0 is true then F is distributed according to the F distribution with (k, n-k-1)= (4, 51) degrees of freedom.
+
+P-value: ${P(F_{4,51}>=55.34)=0.0000<0.05}.
+
+Reject at 5% level. There is a significant linear relationship between percentage response and at least one of the three predictor variables. The overall model is significant.
+
+```{r q1c}
+anova(model)
+k=4
+ess = 9014.4+12739.7+622.6+21.8
+rss = 5160.6
+f=ess/k/(rss/(n-k-1))
+f
+p_value = 1-pf(f, k, n-k-1)
+p_value
 ```
+
+### d
+We check diagnostics, finding that there is no sign of heteroskedasticity. The normality assumption is also met. We plot the residuals against predictors and there is no sign of curvature.
+
+The overall model significance F-test indicates that the model is significant.
+The regression coefficient for temperature, humidity and wind are significant at 0.01 significance level, indicating that the above variables can be used to explain the PM2.5 concentration. As long as the location's temperature, humidity and wind are within the range of the sample variables, this model is appropriate to explain the PM2.5 concentration at various test locations.
+```{r q1d}
+#check diagnostics
+plot(model, which = 1:2)
+
+# check residuals against predictors
+par(mfrow = c(1, 3))
+plot(data$temperature, residuals(model))
+plot(data$humidity, residuals(model))
+plot(data$wind, residuals(model))
+```
+
+### e
+${R^2}$ is 0.8127, the regression model explains 81.27% of the variation in pm25.
+
+### f
+Use stepwise backward selection.
+
+From the regression in b, we find insignificant variable *precipitation*. Remove this variable and re-estimate the model.
+
+The coefficient in the re-estimated model2 are all significant. 
+
+The final fitted model is:
+$\hat pm25=97.3224+1.6267 temperature-1.2698 humidity-0.5806wind$.
+```{r q1f}
+model.2 <- lm(pm25~temperature+humidity+wind, data=data)
+summary(model.2)
+```
+
+### g
+The ${R^2}$ for final model is 0.812 and the adjusted ${R^2}$ is 0.801. 
+
+Compared with the full model, the ${R^2}$ for final model is smaller but the adjusted ${R^2}$ is larger. Because when removing a predictor, the interpretation ability of the model tend to decrease (SSExplained decrease), leading to a smaller ${R^2}$.
+
+The adjusted ${R^2}$ value takes into account the number of predictors in the model, and penalizes models with more predictors. Therefore, after removing the insignificant variable, the model become less complex and more parsimonious, leading to a larger ajusted ${R^2}$.
+
+
+## Question 2
+### a
+The design is unbalanced because group sizes are not equal.
+```{r q2a}
+movie <- read.csv("data/movie.csv")
+table(movie[, c("Gender", "Genre")])
+
+```
+
+### b
+The interaction line plot shows that lines are not parallel, suggesting interaction. The boxplot shows variability, and possible outliers in the female movie score
+```{r q2b}
+par(mfrow = c(1,1))
+with(movie, interaction.plot(Gender, Genre, Score))
+boxplot(Score ~ Gender + Genre, data= movie)
+```
+
+### c
+The full mathematical model is:
+
+$Score_{ijk}=\mu+\alpha_2 Gender_{i2}+\beta_2Genre_{j2}+\beta_2Genre_{j3}+\gamma_{22}Gender_{i2}Genre_{j2}+\gamma_{23}Gender_{i2}Genre_{j3}+\epsilon_{ijk}, \epsilon_{ijk}~^{i.i.d.}N(0,\sigma^2)$.
+
+Response: Score_{ijk} = kth replicate of the treatment at ith level in Gender and jth level in Genre.
+
+$\mu$ = overall population mean.
+
+$Gender_{i2}$: main effect of Gender.
+
+$Genre_{j2}, Genre_{j3}$: main effect of Genre.
+
+$Gender_{i2}Genre_{j2}, Gender_{i2}Genre_{j3}$: interaction effects.
+
+$\epsilon_{ijk}$: unexplained variation for each replicated observation.
+
+### d
+
+There are three types of tests
+
+1. Interaction
+
+$H_0: \gamma_{22}=\gamma_{23}=0$
+
+$H_A: not both  \gamma_{22} \gamma_{23} are equal to 0$
+
+Test statistic: $F_obs = 8.4054$. P-value is 0.0004<0.05.
+Reject at 5% level. There is a significant interaction effect.
+
+2. Main effect Gender
+$H_0: \alpha_2=0$
+
+$H_A: \alpha_2 \neq 0$
+
+Test statistic: $F_obs = 71.807$. P-value is 0.0000<0.05.
+Reject at 5% level. There is a significant gender main effect.
+
+3. Main effect Genre
+$H_0: \beta_2=\beta_3=0$
+
+$H_A: not both \beta_2 and \beta_3 are equal to 0$
+
+Test statistic: $F_obs = 25.257$. P-value is 0.0000<0.05.
+Reject at 5% level. There is a significant genre main effect.
+
+```{r q2d}
+movie.1 = lm(Score ~ Gender * Genre, data=movie)
+summary(movie.1)
+anova(movie.1)
+movie.2 = lm(Score ~ Gender * Genre, data=movie)
+movie.2 = update(movie.1, . ~ . - Gender:Genre) # OR update by removing 
+summary(movie.2)
+anova(movie.2)
+
+```
+
+### e
+From the *movie.1* regression result in d), the slope coefficient for gender, genre and their interaction term all have a significant positive effect on the movie score.
+
+The coefficient for GenderM:GenreDrama is 1.71, indicating that the drama movie score of female viewers are 1.71 higher than other combination of gender and genre. To maximise the brand recognition, they should place more drama to female viewers.
+
